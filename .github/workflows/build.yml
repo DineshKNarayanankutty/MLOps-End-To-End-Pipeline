@@ -2,7 +2,7 @@ name: Build & Push
 
 on:
   push:
-    branches: [main]
+    branches: [none]
     paths:
       - 'Dockerfile'
       - 'src/**'
@@ -11,7 +11,7 @@ on:
   workflow_run:
     workflows: ["Tests & Quality"]
     types: [completed]
-    branches: [main]
+    branches: [none]
 
 jobs:
   build:
