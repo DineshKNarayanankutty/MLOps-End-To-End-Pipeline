@@ -1,0 +1,33 @@
+groups:
+  - name: mlops_alerts
+    interval: 30s
+    rules:
+      # High error rate alert
+      - alert: HighErrorRate
+        expr: rate(prediction_errors_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High prediction error rate"
+          description: "Error rate is {{ $value }}"
+
+      # Latency alert
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, prediction_latency_seconds) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High prediction latency"
+          description: "95th percentile latency is {{ $value }}s"
+
+      # Low prediction volume
+      - alert: LowPredictionVolume
+        expr: rate(predictions_total[5m]) < 0.1
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: "Low prediction volume"
+          description: "Prediction rate is {{ $value }} per second"

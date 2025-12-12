@@ -1,0 +1,45 @@
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+coverage.xml
+
+# ML/Data artifacts (auto-generated)
+mlruns/
+logs/
+outputs/
+*.pkl
+*.joblib
+models/
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# CI/CD
+.github/workflows/*.log
+ci-artifacts/

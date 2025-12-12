@@ -1,0 +1,65 @@
+# Version control
+.git
+.gitignore
+.gitlab-ci.yml
+.gitattributes
+
+# IDE/Editor
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.egg-info
+.pytest_cache
+.mypy_cache
+dist
+build
+*.egg
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Environment
+.env
+.env.local
+.env.*.local
+venv/
+env/
+
+# Testing
+.coverage
+htmlcov/
+
+# Temporary
+*.tmp
+temp/
+
+# Docker files (don't copy into build context)
+docker-compose*.yml
+Dockerfile
+.dockerignore
+
+# Documentation
+docs/
+README.md
+LICENSE
+
+# Data
+data/
+models/
+mlruns/
+.mlflow/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# OS
+Thumbs.db
+.DS_Store

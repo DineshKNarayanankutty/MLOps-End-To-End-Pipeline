@@ -1,0 +1,58 @@
+name: Deploy to AKS
+
+on:
+  workflow_run:
+    workflows: ["Build & Push"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch'
+    
+    permissions:
+      contents: read
+      id-token: write
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Set AKS context
+        uses: azure/aks-set-context@v3
+        with:
+          resource-group: ${{ secrets.AZURE_RESOURCE_GROUP }}
+          cluster-name: ${{ secrets.AKS_CLUSTER_NAME }}
+      
+      - name: Apply Kubernetes manifests
+        run: |
+          kubectl apply -f k8s/deployment.yaml
+      
+      - name: Update image in deployment
+        run: |
+          kubectl set image deployment/mlops-api \
+            api=${{ secrets.ACR_LOGIN_SERVER }}/mlops:${{ github.sha }} \
+            -n mlops
+      
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/mlops-api -n mlops --timeout=5m
+      
+      - name: Verify deployment
+        run: |
+          echo "=== Pods ==="
+          kubectl get pods -n mlops
+          echo ""
+          echo "=== Services ==="
+          kubectl get svc -n mlops
+          echo ""
+          echo "=== Recent Logs ==="
+          kubectl logs -n mlops -l app=mlops-api --tail=20
