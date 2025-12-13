@@ -48,7 +48,7 @@ spec:
     spec:
       containers:
       - name: api
-        image: mlopsregistry.azurecr.io/mlops-pipeline:2.0.0
+        image: mlopsacregistry.azurecr.io/mlops-pipeline:2.0.0
         imagePullPolicy: Always
         ports:
         - containerPort: 8000

@@ -11,7 +11,7 @@ on:
   workflow_run:
     workflows: ["Tests & Quality"]
     types: [completed]
-    branches: [none]
+    branches: [none]  #use [main] for CD
 
 jobs:
   build:
