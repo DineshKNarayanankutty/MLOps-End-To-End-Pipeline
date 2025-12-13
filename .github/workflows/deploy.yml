@@ -48,7 +48,7 @@ jobs:
       - name: Update image in deployment
         run: |
           kubectl set image deployment/mlops-api \
-            mlops-api=${{ secrets.ACR_LOGIN_SERVER }}/mlops:${{ github.sha }} \
+            mlops=${{ secrets.ACR_LOGIN_SERVER }}/mlops:${{ github.sha }} \
             -n mlops
 
       - name: Wait for rollout
