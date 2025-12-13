@@ -35,7 +35,18 @@ jobs:
       - name: Apply Kubernetes manifests
         run: |
           kubectl apply -f k8s/deployment.yaml
-      
+      - name: Deploy monitoring stack
+        run: |
+          kubectl apply -f k8s/mlflow-pvc.yaml
+          kubectl apply -f k8s/mlflow-deployment.yaml
+          kubectl apply -f k8s/prometheus-cm.yaml
+          kubectl apply -f k8s/prometheus-pvc.yaml
+          kubectl apply -f k8s/prometheus-deployment.yaml
+          kubectl apply -f k8s/grafana-pvc.yaml
+          kubectl apply -f k8s/grafana-deployment.yaml
+          kubectl rollout status deployment/mlflow -n mlops
+          kubectl rollout status deployment/prometheus -n mlops
+          kubectl rollout status deployment/grafana -n mlops
       - name: Update image in deployment
         run: |
           kubectl set image deployment/mlops-api \
