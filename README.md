@@ -2,18 +2,19 @@
 
 ## 📖 Project Overview
 
-This project demonstrates how a **machine learning model is built, packaged, and served as a running system**, rather than remaining as a notebook or standalone script.
+This project demonstrates how a **machine learning model is built, packaged, deployed, and operated as a production service**, rather than remaining as a notebook or standalone script.
 
-Using the **Iris classification problem** as a simple and well‑understood example, the project focuses on the *engineering side* of ML systems:
+The **Iris classification problem** is used as a simple, well-known ML task so that the focus remains on **system architecture, deployment, and operations** instead of model complexity.
+
+At a high level, this project covers:
 
 * Training a reproducible ML model
-* Tracking experiments and artifacts using MLflow
+* Tracking experiments and artifacts with MLflow
 * Serving predictions through a REST API
-* Packaging the application with Docker
-* Deploying the service to Kubernetes (AKS)
-* Exposing basic system and application metrics
-
-The ML problem itself is intentionally simple so that the attention stays on **system design, deployment, and operability**.
+* Packaging the application using Docker
+* Storing images in Azure Container Registry (ACR)
+* Deploying the service to Azure Kubernetes Service (AKS)
+* Observing runtime behavior with Prometheus and Grafana
 
 ---
 
@@ -21,57 +22,60 @@ The ML problem itself is intentionally simple so that the attention stays on **s
 
 The core intention of this project is to show that:
 
-> **A trained ML model only becomes useful when it can run reliably as a service.**
+> **A trained ML model only becomes valuable when it can run reliably as a service.**
 
-Instead of optimizing algorithms, this project emphasizes:
+Rather than focusing on algorithm tuning, this project emphasizes the operational side of ML systems:
 
-| Focus Area | What This Project Demonstrates          |
-| ---------- | --------------------------------------- |
-| Training   | Repeatable, script‑driven training      |
-| Tracking   | Versioned experiments and models        |
-| Serving    | API‑based model access                  |
-| Deployment | Containerized, Kubernetes‑based runtime |
-| Operations | Health checks and basic observability   |
+| Area       | What This Project Demonstrates      |
+| ---------- | ----------------------------------- |
+| Training   | Script-driven, repeatable training  |
+| Tracking   | Versioned experiments and artifacts |
+| Serving    | API-based access to the model       |
+| Packaging  | Immutable Docker images             |
+| Deployment | Kubernetes-based runtime (AKS)      |
+| Operations | Health checks and metrics           |
 
-The project treats the model as **software that must be built, deployed, and operated**, not as a one‑time experiment.
+The model is treated as **software that must be built, deployed, and operated**, not as a one-time experiment.
 
 ---
 
 ## 🌸 Why the Iris Dataset?
 
-The Iris dataset is used deliberately because it is:
+The Iris dataset is intentionally chosen because it is:
 
 * Small and fast to train
-* Easy to understand without ML expertise
-* Free from heavy data‑engineering requirements
+* Easy to understand without deep ML knowledge
+* Free from complex data engineering requirements
 
-This keeps the focus on **how the system works**, not on dataset complexity. The same architecture can be reused for larger datasets without changing the overall design.
+This allows anyone reading the project to focus on **how the system works end to end**. The same architecture can be reused for larger, real-world datasets without changing the overall design.
 
 ---
 
-## 🧠 End‑to‑End Flow
+## 🧠 End-to-End Flow
 
 ```
 Load Data
    ↓
 Train Model
    ↓
-Log Metrics & Artifacts (MLflow)
+Log Metrics & Model Artifact (MLflow)
    ↓
-Serve Model via FastAPI
+Package API with Docker
    ↓
-Package with Docker
+Push Image to Azure Container Registry (ACR)
    ↓
-Deploy to Kubernetes (AKS)
+Deploy to Azure Kubernetes Service (AKS)
    ↓
-Expose Metrics & Health Endpoints
+Serve Predictions via REST API
+   ↓
+Expose Metrics → Prometheus → Grafana
 ```
 
-At runtime, external users or services interact only with the **API**, not directly with the model or training code.
+External users interact only with the **API**, not with the training or model management components.
 
 ---
 
-## 🏗️ High‑Level Architecture
+## 🏗️ High-Level Architecture
 
 ```
 Training Script
@@ -86,7 +90,10 @@ FastAPI Application
 Docker Image
    │
    ▼
-Kubernetes (AKS)
+Azure Container Registry (ACR)
+   │
+   ▼
+Azure Kubernetes Service (AKS)
    │
    ▼
 Prometheus → Grafana
@@ -144,16 +151,16 @@ MLOps-End-To-End-Pipeline/
 | ------------ | ----------------------------------------- |
 | Problem Type | Multiclass classification                 |
 | Dataset      | Iris dataset                              |
-| Library      | scikit‑learn                              |
+| Library      | scikit-learn                              |
 | Metrics      | Accuracy and basic classification metrics |
 
-The ML code is intentionally **simple and modular**, making it easy to replace the model without changing the system architecture.
+The ML implementation is intentionally **simple and modular**, allowing the system architecture to remain the primary focus.
 
 ---
 
 ## 🔁 Training & Experiment Tracking
 
-Training is executed using a Python script:
+Training is executed via a Python script:
 
 ```bash
 python scripts/train_pipeline.py
@@ -162,9 +169,9 @@ python scripts/train_pipeline.py
 During training:
 
 * Parameters and metrics are logged to **MLflow**
-* The trained model artifact is stored for later use
+* The trained model is stored as a **versioned artifact**
 
-This enables reproducibility and comparison between runs.
+This enables reproducibility and comparison across runs.
 
 ---
 
@@ -172,34 +179,46 @@ This enables reproducibility and comparison between runs.
 
 The FastAPI service exposes:
 
-* `POST /predict` – returns model predictions
-* `GET /health` – basic service health information
-* `GET /metrics` – Prometheus‑compatible metrics
+* `POST /predict` – return model predictions
+* `GET /health` – service health status
+* `GET /metrics` – Prometheus-compatible metrics
 
-The API loads the trained model at startup and serves predictions over HTTP.
+The model is loaded at application startup and used only for inference.
 
 ---
 
 ## 🐳 Containerization
 
-The application is packaged using Docker to ensure consistent runtime behavior:
+The FastAPI application is packaged using Docker to ensure consistent behavior across environments.
 
 ```bash
 docker build -t mlops-api .
-docker run -p 8000:8000 mlops-api
+```
+
+The image is pushed to **Azure Container Registry (ACR)**:
+
+```bash
+docker tag mlops-api <acr-name>.azurecr.io/mlops-api:latest
+docker push <acr-name>.azurecr.io/mlops-api:latest
 ```
 
 ---
 
 ## ☸️ Kubernetes Deployment (AKS)
 
-The containerized API is deployed to **Azure Kubernetes Service (AKS)** using Kubernetes manifests.
+The containerized application is deployed to **Azure Kubernetes Service (AKS)**.
 
-Kubernetes handles:
+Deployment flow:
 
-* Running the API pods
+```
+GitHub Actions → Azure Container Registry (ACR) → AKS
+```
+
+Kubernetes is responsible for:
+
+* Running application pods
 * Restarting failed containers
-* Exposing the service via a Kubernetes Service
+* Exposing the API through a Kubernetes Service
 
 ---
 
@@ -208,19 +227,20 @@ Kubernetes handles:
 * **Prometheus** scrapes metrics from the `/metrics` endpoint
 * **Grafana** visualizes request counts, latency, and service health
 
-This provides basic visibility into how the system behaves after deployment.
+This provides visibility into how the system behaves after deployment.
 
 ---
 
 ## 🔄 CI/CD with GitHub Actions
 
-GitHub Actions automate:
+GitHub Actions automates the delivery pipeline:
 
-* Running tests on every change
-* Building Docker images
-* Deploying updated versions to AKS
+1. Run unit and API tests
+2. Build the Docker image
+3. Push the image to **Azure Container Registry (ACR)**
+4. Deploy the updated image to **AKS**
 
-This ensures that changes are validated and deployed in a repeatable way.
+This ensures every deployment uses a tested, versioned container image.
 
 ---
 
@@ -240,8 +260,8 @@ uvicorn api.main:app --reload
 ## 🔮 Future Improvements
 
 * Automated retraining pipelines
-* More advanced drift detection
-* Canary or blue‑green deployments
+* Advanced drift detection
+* Canary or blue-green deployments
 * Feature store integration
 * Model explainability dashboards
 
@@ -249,7 +269,7 @@ uvicorn api.main:app --reload
 
 ## 👤 Author
 
-This project was built to demonstrate **practical MLOps system design**, focusing on clarity, correctness, and real‑world deployment patterns.
+This project was built to demonstrate **practical MLOps system design**, focusing on clarity, correctness, and real-world deployment patterns.
 
 ---
 
