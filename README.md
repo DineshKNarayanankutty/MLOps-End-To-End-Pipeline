@@ -132,7 +132,7 @@ MLOps-End-To-End-Pipeline/
 │
 ├── .github/workflows/       # GitHub Actions CI/CD pipelines
 │   ├── tests.yml            # Run tests
-│   ├── build.yml            # Build & push Docker image
+│   ├── build.yml            # Build & push Docker image to ACR
 │   ├── deploy.yml           # Deploy to AKS
 │   └── observability.yml    # Deploy monitoring stack
 │
