@@ -75,7 +75,8 @@ External users interact only with the **API**, not with the training or model ma
 
 ---
 
-## 🏗️ High-Level Architecture
+## 🏗️ System Architecture
+![End-to-End MLOps Architecture](docs/End-to-End MLOps System Architecture-WM1.png)
 
 ```
 Training Script
