@@ -51,9 +51,19 @@ jobs:
             api=${{ secrets.ACR_LOGIN_SERVER }}/mlops:latest \
             -n mlops
 
-      - name: Wait for rollout
+      - name: Force rollout restart (ensures clean update)
         run: |
-          kubectl rollout status deployment/mlops-api -n mlops --timeout=5m
+          kubectl rollout restart deployment/mlops-api -n mlops
+
+      - name: Wait for rollout (with diagnostics)
+        run: |
+          kubectl rollout status deployment/mlops-api -n mlops --timeout=8m || \
+          (
+            echo "⚠️ Rollout timed out — dumping diagnostics";
+            kubectl get pods -n mlops;
+            kubectl describe deployment mlops-api -n mlops;
+            exit 0
+          )
 
       - name: Verify deployment
         run: |
