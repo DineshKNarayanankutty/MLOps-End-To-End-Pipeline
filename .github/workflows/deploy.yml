@@ -57,7 +57,7 @@ jobs:
 
       - name: Wait for rollout (with diagnostics)
         run: |
-          kubectl rollout status deployment/mlops-api -n mlops --timeout=8m || \
+          kubectl rollout status deployment/mlops-api -n mlops --timeout=2m || \
           (
             echo "⚠️ Rollout timed out — dumping diagnostics";
             kubectl get pods -n mlops;
