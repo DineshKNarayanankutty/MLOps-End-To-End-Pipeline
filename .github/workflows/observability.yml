@@ -31,6 +31,32 @@ jobs:
           resource-group: ${{ secrets.AZURE_RESOURCE_GROUP }}
           cluster-name: ${{ secrets.AKS_CLUSTER_NAME }}
 
+      # STEP 0: Check/Create storage class
+      - name: "Step 0: Ensure managed-csi storage class exists"
+        run: |
+          echo "Checking for managed-csi storage class..."
+          if kubectl get storageclass managed-csi &> /dev/null; then
+            echo "✓ managed-csi storage class already exists"
+          else
+            echo "⚠ managed-csi not found, creating it..."
+            kubectl apply -f - <<EOF
+          apiVersion: storage.k8s.io/v1
+          kind: StorageClass
+          metadata:
+            name: managed-csi
+          provisioner: disk.csi.azure.com
+          parameters:
+            skuname: Standard_LRS
+          allowVolumeExpansion: true
+          volumeBindingMode: WaitForFirstConsumer
+          EOF
+            sleep 2
+          fi
+          
+          echo ""
+          echo "Available storage classes:"
+          kubectl get storageclass
+
       # STEP 1: Create namespace first
       - name: "Step 1: Create namespace"
         run: |
@@ -38,10 +64,26 @@ jobs:
           kubectl create namespace mlops --dry-run=client -o yaml | kubectl apply -f -
           kubectl get namespace mlops
 
+      # STEP 1.5: Clean up old PVCs with wrong storage class
+      - name: "Step 1.5: Clean up old PVCs (if using wrong storage class)"
+        run: |
+          echo "Checking for old PVCs with 'default' storage class..."
+          
+          # Delete old PVCs if they exist
+          kubectl delete pvc mlflow-pvc -n mlops --ignore-not-found=true 2>/dev/null || true
+          kubectl delete pvc prometheus-pvc -n mlops --ignore-not-found=true 2>/dev/null || true
+          kubectl delete pvc grafana-pvc -n mlops --ignore-not-found=true 2>/dev/null || true
+          
+          echo "Waiting for old PVCs to be fully deleted..."
+          sleep 5
+          
+          echo "Current PVCs in mlops namespace:"
+          kubectl get pvc -n mlops || echo "No PVCs found (fresh start)"
+
       # STEP 2: Deploy ConfigMap BEFORE Prometheus deployment
       - name: "Step 2: Deploy Prometheus ConfigMap"
         run: |
-          echo "Deploying Prometheus ConfigMap..."
+          echo "Deploying Prometheus ConfigMap (config MUST exist first)..."
           kubectl apply -f k8s/observability/prometheus/prometheus-cm.yaml
           sleep 2
           kubectl get cm -n mlops
@@ -49,25 +91,34 @@ jobs:
       # STEP 3: Deploy all PVCs (storage MUST be Bound before deployments)
       - name: "Step 3: Deploy PVCs (MLflow, Prometheus, Grafana)"
         run: |
-          echo "Deploying Persistent Volume Claims..."
+          echo "Deploying Persistent Volume Claims with managed-csi..."
           kubectl apply -f k8s/observability/mlflow/mlflow-pvc.yaml
           kubectl apply -f k8s/observability/prometheus/prometheus-pvc.yaml
           kubectl apply -f k8s/observability/grafana/grafana-pvc.yaml
           
           echo "Waiting for PVCs to be Bound..."
-          kubectl wait --for=jsonpath='{.status.phase}'=Bound pvc/mlflow-pvc -n mlops --timeout=60s || echo "MLflow PVC binding..."
-          kubectl wait --for=jsonpath='{.status.phase}'=Bound pvc/prometheus-pvc -n mlops --timeout=60s || echo "Prometheus PVC binding..."
-          kubectl wait --for=jsonpath='{.status.phase}'=Bound pvc/grafana-pvc -n mlops --timeout=60s || echo "Grafana PVC binding..."
-          
+          sleep 3
           kubectl get pvc -n mlops
 
       # STEP 4: Wait to ensure PVCs are truly ready
       - name: "Step 4: Wait for PVC readiness"
         run: |
-          echo "Waiting 10 seconds for PVCs to settle..."
-          sleep 10
+          echo "Waiting 15 seconds for PVCs to settle..."
+          sleep 15
           echo "PVC status:"
           kubectl get pvc -n mlops -o wide
+          
+          # Verify all PVCs are Bound
+          PVC_COUNT=$(kubectl get pvc -n mlops --no-headers | wc -l)
+          BOUND_COUNT=$(kubectl get pvc -n mlops --no-headers | grep Bound | wc -l)
+          
+          if [ "$PVC_COUNT" -eq "$BOUND_COUNT" ]; then
+            echo "✓ All PVCs are Bound!"
+          else
+            echo "⚠ Warning: Some PVCs not yet Bound. Waiting longer..."
+            sleep 10
+            kubectl get pvc -n mlops -o wide
+          fi
 
       # STEP 5: Deploy MLflow (now that mlflow-pvc is Bound)
       - name: "Step 5: Deploy MLflow"
@@ -162,3 +213,7 @@ jobs:
           echo ""
           echo "=== Pod Events ==="
           kubectl describe pods -n mlops 2>/dev/null || echo "Unable to describe pods"
+          
+          echo ""
+          echo "=== PVC Status ==="
+          kubectl get pvc -n mlops -o wide 2>/dev/null || echo "Unable to get PVCs"
