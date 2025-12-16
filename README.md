@@ -78,6 +78,10 @@ External users interact only with the **API**, not with the training or model ma
 ## 🏗️ System Architecture
 ![End-to-End MLOps Architecture](docs/End-to-End MLOps System Architecture-WM1.png)
 
+<img width="2048" height="1803" alt="End-to-End MLOps System Architecture-WM1" src="https://github.com/user-attachments/assets/d8d1785f-0374-4f20-9974-67ee159994ce" />
+
+## 🖇️ Logical Flow
+
 ```
 Training Script
    │
