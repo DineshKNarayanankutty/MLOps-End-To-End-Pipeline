@@ -90,6 +90,7 @@ spec:
       - name: models
         configMap:
           name: mlops-models
+          optional: true
       - name: logs
         emptyDir: {}
       securityContext:
