@@ -6,7 +6,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: default
+  storageClassName: managed-csi
   resources:
     requests:
-      storage: 2Gi #We can increase it if we want
+      storage: 2Gi

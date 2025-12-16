@@ -31,23 +31,134 @@ jobs:
           resource-group: ${{ secrets.AZURE_RESOURCE_GROUP }}
           cluster-name: ${{ secrets.AKS_CLUSTER_NAME }}
 
-      - name: Create namespace
+      # STEP 1: Create namespace first
+      - name: "Step 1: Create namespace"
         run: |
-          kubectl apply -f k8s/observability/namespace.yaml
+          echo "Creating mlops namespace..."
+          kubectl create namespace mlops --dry-run=client -o yaml | kubectl apply -f -
+          kubectl get namespace mlops
 
-      - name: Deploy MLflow
+      # STEP 2: Deploy ConfigMap BEFORE Prometheus deployment
+      - name: "Step 2: Deploy Prometheus ConfigMap"
         run: |
-          kubectl apply -f k8s/observability/mlflow/
+          echo "Deploying Prometheus ConfigMap..."
+          kubectl apply -f k8s/observability/prometheus/prometheus-cm.yaml
+          sleep 2
+          kubectl get cm -n mlops
 
-      - name: Deploy Prometheus
+      # STEP 3: Deploy all PVCs (storage MUST be Bound before deployments)
+      - name: "Step 3: Deploy PVCs (MLflow, Prometheus, Grafana)"
         run: |
-          kubectl apply -f k8s/observability/prometheus/
+          echo "Deploying Persistent Volume Claims..."
+          kubectl apply -f k8s/observability/mlflow/mlflow-pvc.yaml
+          kubectl apply -f k8s/observability/prometheus/prometheus-pvc.yaml
+          kubectl apply -f k8s/observability/grafana/grafana-pvc.yaml
+          
+          echo "Waiting for PVCs to be Bound..."
+          kubectl wait --for=jsonpath='{.status.phase}'=Bound pvc/mlflow-pvc -n mlops --timeout=60s || echo "MLflow PVC binding..."
+          kubectl wait --for=jsonpath='{.status.phase}'=Bound pvc/prometheus-pvc -n mlops --timeout=60s || echo "Prometheus PVC binding..."
+          kubectl wait --for=jsonpath='{.status.phase}'=Bound pvc/grafana-pvc -n mlops --timeout=60s || echo "Grafana PVC binding..."
+          
+          kubectl get pvc -n mlops
 
-      - name: Deploy Grafana
+      # STEP 4: Wait to ensure PVCs are truly ready
+      - name: "Step 4: Wait for PVC readiness"
         run: |
-          kubectl apply -f k8s/observability/grafana/
+          echo "Waiting 10 seconds for PVCs to settle..."
+          sleep 10
+          echo "PVC status:"
+          kubectl get pvc -n mlops -o wide
 
-      - name: Verify observability stack
+      # STEP 5: Deploy MLflow (now that mlflow-pvc is Bound)
+      - name: "Step 5: Deploy MLflow"
         run: |
+          echo "Deploying MLflow server..."
+          kubectl apply -f k8s/observability/mlflow/mlflow-deployment.yaml
+          echo "Waiting for MLflow pod to be Ready..."
+          kubectl wait --for=condition=ready pod -l app=mlflow -n mlops --timeout=120s
+          kubectl get pods -n mlops -l app=mlflow
+
+      # STEP 6: Deploy Prometheus (now that prometheus-pvc and cm are ready)
+      - name: "Step 6: Deploy Prometheus (with RBAC)"
+        run: |
+          echo "Deploying Prometheus ServiceAccount and RBAC..."
+          kubectl apply -f k8s/observability/prometheus/prometheus-rbac.yaml
+          
+          echo "Deploying Prometheus server..."
+          kubectl apply -f k8s/observability/prometheus/prometheus-deployment.yaml
+          echo "Waiting for Prometheus pod to be Ready..."
+          kubectl wait --for=condition=ready pod -l app=prometheus -n mlops --timeout=120s
+          kubectl get pods -n mlops -l app=prometheus
+
+      # STEP 7: Deploy Grafana (now that grafana-pvc is Bound)
+      - name: "Step 7: Deploy Grafana"
+        run: |
+          echo "Deploying Grafana..."
+          kubectl apply -f k8s/observability/grafana/grafana-deployment.yaml
+          echo "Waiting for Grafana pod to be Ready..."
+          kubectl wait --for=condition=ready pod -l app=grafana -n mlops --timeout=120s
+          kubectl get pods -n mlops -l app=grafana
+
+      # STEP 8: Verify all are running
+      - name: "Step 8: Verify observability stack"
+        run: |
+          echo "=== Checking Pods ==="
           kubectl get pods -n mlops
+          
+          echo ""
+          echo "=== Checking Services ==="
           kubectl get svc -n mlops
+          
+          echo ""
+          echo "=== Checking PVCs ==="
+          kubectl get pvc -n mlops
+          
+          echo ""
+          echo "=== Pod Details ==="
+          kubectl get pods -n mlops -o wide
+          
+          echo ""
+          echo "=== Waiting for external IPs ==="
+          sleep 10
+          kubectl get svc -n mlops -o wide
+
+      # Optional: Show how to access services
+      - name: "Print access information"
+        if: success()
+        run: |
+          echo "=== Observability Stack Deployed Successfully ==="
+          echo ""
+          echo "Waiting for external IPs to be assigned..."
+          sleep 5
+          
+          MLFLOW_IP=$(kubectl get svc mlflow-service -n mlops -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "PENDING")
+          PROMETHEUS_IP=$(kubectl get svc prometheus-service -n mlops -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "PENDING")
+          GRAFANA_IP=$(kubectl get svc grafana-service -n mlops -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "PENDING")
+          
+          echo "MLflow:     http://$MLFLOW_IP:5000"
+          echo "Prometheus: http://$PROMETHEUS_IP:9090"
+          echo "Grafana:    http://$GRAFANA_IP:3000 (admin/admin)"
+          echo ""
+          echo "Note: External IPs may take 1-2 minutes to be assigned."
+          echo "Run: kubectl get svc -n mlops -o wide"
+
+      # Optional: Rollback on failure
+      - name: "Cleanup on failure"
+        if: failure()
+        run: |
+          echo "Deployment failed. Checking pod logs for debugging..."
+          echo ""
+          echo "=== MLflow Logs ==="
+          kubectl logs -n mlops -l app=mlflow --tail=20 2>/dev/null || echo "MLflow pod not ready"
+          
+          echo ""
+          echo "=== Prometheus Logs ==="
+          kubectl logs -n mlops -l app=prometheus --tail=20 2>/dev/null || echo "Prometheus pod not ready"
+          
+          echo ""
+          echo "=== Grafana Logs ==="
+          kubectl logs -n mlops -l app=grafana --tail=20 2>/dev/null || echo "Grafana pod not ready"
+          
+          echo ""
+          echo "=== Pod Events ==="
+          kubectl describe pods -n mlops 2>/dev/null || echo "Unable to describe pods"
