@@ -1,0 +1,16 @@
+data:
+  target_column: Class
+  test_size: 0.2
+  random_state: 42
+
+preprocessing:
+  scaling: robust
+  remove_outliers: true
+
+training:
+  model_type: random_forest
+  n_estimators: 200
+  max_depth: 12
+
+evaluation:
+  threshold: 0.5
