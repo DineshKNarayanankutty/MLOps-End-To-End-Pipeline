@@ -1,33 +1,36 @@
 stages:
   preprocess:
-    cmd: python src/data/preprocess.py
+    cmd: python src/preprocessing.py
     deps:
-    - data/raw
-    - src/data/preprocess.py
+      - data/raw
+      - src/data_loader.py
+      - src/preprocessing.py
     params:
-    - data.random_state
-    - data.test_size
-    - preprocessing.remove_outliers
-    - preprocessing.scaling
+      - data.random_state
+      - data.test_size
+      - preprocessing.remove_outliers
+      - preprocessing.scaling
     outs:
-    - data/processed
+      - data/processed
+
   train:
-    cmd: python src/models/train.py
+    cmd: python src/training.py
     deps:
-    - data/processed
-    - src/models/train.py
+      - data/processed
+      - src/training.py
     params:
-    - training.max_depth
-    - training.model_type
-    - training.n_estimators
+      - training.model_type
+      - training.n_estimators
+      - training.max_depth
     outs:
-    - models/model.pkl
+      - models/model.pkl
+
   evaluate:
-    cmd: python src/evaluation/evaluate.py
+    cmd: python src/evaluation.py
     deps:
-    - models/model.pkl
-    - src/evaluation/evaluate.py
+      - models/model.pkl
+      - src/evaluation.py
     params:
-    - evaluation.threshold
+      - evaluation.threshold
     outs:
-    - metrics/metrics.json
+      - metrics/metrics.json
