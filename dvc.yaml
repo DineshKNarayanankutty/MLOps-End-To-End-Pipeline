@@ -28,9 +28,11 @@ stages:
   evaluate:
     cmd: python src/evaluation.py
     deps:
-      - models/model.pkl
       - src/evaluation.py
+      - models/model.pkl
+      - data/processed
     params:
-      - evaluation.threshold
+      - evaluation.average
     outs:
       - metrics/metrics.json
+
