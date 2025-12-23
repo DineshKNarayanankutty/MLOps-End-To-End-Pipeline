@@ -1,0 +1,5 @@
+[core]
+    remote = azurestorage
+['remote "azurestorage"']
+    url = azure://dvc-data-mlopse2e
+    account_name = mlopsdvcstore123
