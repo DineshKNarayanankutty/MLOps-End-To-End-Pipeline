@@ -11,3 +11,14 @@ stages:
     - preprocessing.scaling
     outs:
     - data/processed
+  train:
+    cmd: python src/models/train.py
+    deps:
+    - data/processed
+    - src/models/train.py
+    params:
+    - training.max_depth
+    - training.model_type
+    - training.n_estimators
+    outs:
+    - models/model.pkl
