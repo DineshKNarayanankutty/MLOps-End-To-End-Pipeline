@@ -22,3 +22,12 @@ stages:
     - training.n_estimators
     outs:
     - models/model.pkl
+  evaluate:
+    cmd: python src/evaluation/evaluate.py
+    deps:
+    - models/model.pkl
+    - src/evaluation/evaluate.py
+    params:
+    - evaluation.threshold
+    outs:
+    - metrics/metrics.json
