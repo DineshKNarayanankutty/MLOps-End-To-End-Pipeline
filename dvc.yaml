@@ -1,1 +1,13 @@
-
+stages:
+  preprocess:
+    cmd: python src/data/preprocess.py
+    deps:
+    - data/raw
+    - src/data/preprocess.py
+    params:
+    - data.random_state
+    - data.test_size
+    - preprocessing.remove_outliers
+    - preprocessing.scaling
+    outs:
+    - data/processed
