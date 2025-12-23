@@ -3,13 +3,11 @@ import joblib
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
-
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 import yaml
 
-
 # -----------------------------
-# Paths (DVC-friendly)
+# Paths
 # -----------------------------
 PROCESSED_DATA_DIR = Path("data/processed")
 MODEL_PATH = Path("models/model.pkl")
@@ -30,7 +28,7 @@ def load_params():
 # Load data
 # -----------------------------
 def load_data():
-    X_test = pd.read_csv(PROCESSED_DATA_DIR / "X_test.csv")
+    X_test = pd.read_csv(PROCESSED_DATA_DIR / "X_test_scaled.csv")
     y_test = pd.read_csv(PROCESSED_DATA_DIR / "y_test.csv").values.ravel()
     return X_test, y_test
 
@@ -43,18 +41,17 @@ def load_model():
 
 
 # -----------------------------
-# Evaluate model
+# Evaluate model (MULTICLASS)
 # -----------------------------
-def evaluate(model, X_test, y_test, threshold):
-    y_proba = model.predict_proba(X_test)[:, 1]
-    y_pred = (y_proba >= threshold).astype(int)
+def evaluate(model, X_test, y_test, average):
+    y_pred = model.predict(X_test)
 
     metrics = {
         "accuracy": accuracy_score(y_test, y_pred),
-        "precision": precision_score(y_test, y_pred),
-        "recall": recall_score(y_test, y_pred),
-        "f1_score": f1_score(y_test, y_pred),
-        "roc_auc": roc_auc_score(y_test, y_proba),
+        "precision": precision_score(y_test, y_pred, average=average),
+        "recall": recall_score(y_test, y_pred, average=average),
+        "f1_score": f1_score(y_test, y_pred, average=average),
+        "confusion_matrix": confusion_matrix(y_test, y_pred).tolist(),
     }
 
     return metrics
@@ -74,17 +71,20 @@ def save_metrics(metrics):
 # -----------------------------
 def main():
     params = load_params()
-    threshold = params.get("threshold", 0.5)
+    average = params.get("average", "macro")
 
     X_test, y_test = load_data()
     model = load_model()
 
-    metrics = evaluate(model, X_test, y_test, threshold)
+    metrics = evaluate(model, X_test, y_test, average)
     save_metrics(metrics)
 
     print("Evaluation metrics:")
     for k, v in metrics.items():
-        print(f"{k}: {v:.4f}")
+        if k != "confusion_matrix":
+            print(f"{k}: {v:.4f}")
+    print("Confusion Matrix:")
+    print(np.array(metrics["confusion_matrix"]))
 
 
 if __name__ == "__main__":
