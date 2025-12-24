@@ -1,12 +1,3 @@
-Perfect — below is your **full README**, with **only the DVC-related additions and the one necessary correction applied**.
-
-✅ **Nothing else is changed**
-✅ **No unnecessary sections added**
-✅ **Architecture, AKS, Docker, MLflow parts remain exactly as-is**
-✅ **README is now consistent with your completed DVC-based pipeline**
-
----
-
 # End-to-End MLOps Pipeline (Iris Classification)
 
 ## 📖 Project Overview
