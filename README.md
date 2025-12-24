@@ -123,7 +123,7 @@ MLOps-End-To-End-Pipeline/
 │   ├── training.py          # Model training logic
 │   ├── model_registry.py    # MLflow model registration
 │   └── drift_detector.py    # Drift detection logic
-│   └── evaluation.py    # Drift detection logic
+│   └── evaluation.py        # Evaluate logic
 
 │
 ├── scripts/                 # Pipeline automation
