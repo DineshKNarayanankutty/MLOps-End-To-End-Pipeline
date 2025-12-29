@@ -79,7 +79,7 @@ External users interact only with the **API**, not with the training or model ma
 
 ## 🏗️ System Architecture
 
-<img width="1907" height="1681" alt="End-to-End MLOps System Architecture drawio" src="https://github.com/user-attachments/assets/d9f59323-c68e-4c3d-8c2f-c22dbdfd51dc" />
+<img width="1901" height="1676" alt="End-to-End MLOps System Architecture drawio" src="https://github.com/user-attachments/assets/62a646bb-602b-4028-a20b-99d4eb1804e5" />
 
 ---
 
