@@ -81,6 +81,8 @@ External users interact only with the **API**, not with the training or model ma
 
 <img width="1901" height="1676" alt="End-to-End MLOps System Architecture drawio" src="https://github.com/user-attachments/assets/62a646bb-602b-4028-a20b-99d4eb1804e5" />
 
+<img width="1672" height="941" alt="ChatGPT Image May 14, 2026, 08_09_17 PM" src="https://github.com/user-attachments/assets/0d30a39e-d537-4193-851a-2758aba1b6ca" />
+
 ---
 
 ## 🖇️ Logical Flow
